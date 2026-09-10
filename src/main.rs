@@ -3,6 +3,7 @@ use std::io::Write;
 use std::env;
 
 mod lexer;
+mod parser;
 
 fn main(){
     let user = env::var("USER").expect("USER environment variable must be set");
@@ -19,5 +20,8 @@ fn main(){
         for i in 0..tokens.len() {
             print!("token {i}: {:?}\n", &tokens.get(i).unwrap())
         }
+
+        let cmd = parser::parse_tokens(tokens);
+        cmd.execute();
     }
 }

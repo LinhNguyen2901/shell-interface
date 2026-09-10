@@ -22,6 +22,21 @@ pub fn get_input() -> String {
     return input;
 }
 
+// Referenced from https://stackoverflow.com/questions/32257273/split-a-string-keeping-the-separators
 pub fn get_tokens(input:&str) -> Vec<&str> {
-    return input.split(' ').filter(|s| !s.is_empty()).collect();
+    let mut result = Vec::new();
+    let mut last = 0;
+    for (index, matched) in input.match_indices(|c: char| !(c.is_alphanumeric() || c == '\\')){
+        if last != index {
+            result.push(&input[last..index]);
+        }
+        if !matched.chars().all(char::is_whitespace) {
+            result.push(matched);
+        }
+        last = index + matched.len()
+    }
+    if last < input.len() {
+        result.push(&input[last..]);
+    }
+    return result;
 }
