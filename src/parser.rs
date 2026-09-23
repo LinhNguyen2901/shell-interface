@@ -1,3 +1,6 @@
+use crate::exec;
+use crate::path_search;
+
 // Adapted from https://www.cs.purdue.edu/homes/grr/SystemsProgrammingBook/Book/Chapter5-WritingYourOwnShell.pdf
 #[derive(Debug)]
 pub struct SimpleCommand {
@@ -49,18 +52,15 @@ impl Command {
         
     }
     pub fn execute(&self) {
-        // Temporary, only echo
         for cmd in &self.simple_commands {
-            if cmd.arguments.first().map(|s| s.as_str()) == Some("echo") {
-                if let Some(arg) = cmd.arguments.get(1) {
-                    println!("{}", arg);
-                }
-            }
-            else {
-                println!("Command {:?} not found.", cmd);
+            let name = &cmd.arguments[0];
+            match path_search::find_command(name) {
+                Some(path) => exec::execute_command(&path, &cmd.arguments[1..]),
+                None => println!("{}: command not found", name),
             }
         }
     }
+    
     pub fn clear(&mut self) {
         self.simple_commands.clear();
         self.out_file = None;

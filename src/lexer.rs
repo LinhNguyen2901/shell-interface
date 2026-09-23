@@ -26,7 +26,7 @@ pub fn get_input() -> String {
 pub fn get_tokens(input:&str) -> Vec<&str> {
     let mut result = Vec::new();
     let mut last = 0;
-    for (index, matched) in input.match_indices(|c: char| !(c.is_alphanumeric() || c == '\\' || c == '$')){
+    for (index, matched) in input.match_indices(|c: char| c.is_whitespace() || c == '|' || c == '<' || c == '>' || c == '&'){
         if last != index {
             result.push(&input[last..index]);
         }
