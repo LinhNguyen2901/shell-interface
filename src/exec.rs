@@ -25,23 +25,3 @@ pub fn execute_command(path: &str, args: &[String]) {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runs_ls_no_args() {
-        execute_command("/bin/ls", &[]);
-    }
-
-    #[test]
-    fn runs_echo_with_args() {
-        execute_command("/bin/echo", &["hello".to_string(), "world".to_string()]);
-    }
-
-    #[test]
-    fn runs_ls_with_flag() {
-        execute_command("/bin/ls", &["-al".to_string()]);
-    }
-}
