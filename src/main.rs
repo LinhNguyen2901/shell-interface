@@ -7,6 +7,9 @@ mod parser;
 mod env_expand;
 mod exec;
 
+mod tilde;
+mod path_search;
+
 fn main(){
     let user = env::var("USER").expect("USER environment variable must be set");
     let machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
@@ -21,7 +24,7 @@ fn main(){
         let tokens = lexer::get_tokens(&input);
         let mut expanded_tokens: Vec<String> = Vec::new();
         for t in &tokens {
-            let expanded = env_expand::get_env(t);
+            let expanded = env_expand::get_env(&tilde::expand_tilde(t));
             expanded_tokens.push(expanded);
         }
 
