@@ -5,6 +5,7 @@ use std::env;
 mod lexer;
 mod parser;
 mod env_expand;
+mod exec;
 
 fn main(){
     let user = env::var("USER").expect("USER environment variable must be set");
