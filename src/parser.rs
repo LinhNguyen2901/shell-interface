@@ -1,6 +1,8 @@
 use nix::{sys::wait::waitpid,unistd::{fork, ForkResult, write, close, execvp, dup2, pipe, Pid}};
 use std::os::fd::{AsRawFd, RawFd, OwnedFd};
 use std::ffi::CString;
+use crate::exec;
+use crate::path_search;
 
 // Adapted from https://www.cs.purdue.edu/homes/grr/SystemsProgrammingBook/Book/Chapter5-WritingYourOwnShell.pdf
 #[derive(Debug)]
@@ -94,6 +96,11 @@ impl Command {
             }
             for pid in children {
                 let _ = waitpid(pid, None);
+        for cmd in &self.simple_commands {
+            let name = &cmd.arguments[0];
+            match path_search::find_command(name) {
+                Some(path) => exec::execute_command(&path, &cmd.arguments[1..]),
+                None => println!("{}: command not found", name),
             }
 
             // if cmd.arguments.first().map(|s| s.as_str()) == Some("echo") {
@@ -106,6 +113,7 @@ impl Command {
             // }
         }
     }
+    
     pub fn clear(&mut self) {
         self.simple_commands.clear();
         self.background = false;

@@ -7,3 +7,4 @@ edition = "2024"
 libc = "0.2.189"
 nix = { version = "0.29", features = ["fs", "process"] }
 nix = "0.31.3"
+nix = { version = "0.29", features = ["process"] }
