@@ -42,5 +42,6 @@ dependencies = [
 name = "shell-interface"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nix",
 ]
