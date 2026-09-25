@@ -1,8 +1,8 @@
-use nix::unistd::{fork, execv, ForkResult};
-use nix::sys::wait::waitpid;
 use std::ffi::CString;
+use nix::{unistd::{fork, ForkResult, close, execv, dup2, pipe, Pid}};
+use std::os::fd::{RawFd, IntoRawFd};
 
-pub fn execute_command(path: &str, args: &[String]) {
+pub fn execute_command(path: &str, args: &[String], inputfd: &mut RawFd, last: bool, children: &mut Vec<Pid>) {
     let c_path = CString::new(path).unwrap();
 
     let mut c_args = Vec::new();
@@ -11,17 +11,42 @@ pub fn execute_command(path: &str, args: &[String]) {
         c_args.push(CString::new(arg.as_str()).unwrap());
     }
 
-    let result = unsafe { fork() };
-
-    match result {
+    let mut pipefd: (RawFd, RawFd) = (-1, -1);
+    if !last {
+        let (i, o) = pipe().expect("Failed to create pipe.");
+        pipefd = (i.into_raw_fd(), o.into_raw_fd())
+    }
+    
+    match unsafe{fork()} {
+        Ok(ForkResult::Parent { child, .. }) => {
+            children.push(child);
+            if *inputfd != 0 {
+                close(*inputfd).ok();
+            }
+            if !last {
+                close(pipefd.1).ok();
+                *inputfd = pipefd.0;
+            }
+            
+        }
         Ok(ForkResult::Child) => {
+            redirect_io(*inputfd, pipefd, last);
             execv(&c_path, &c_args).unwrap();
         }
-        Ok(ForkResult::Parent { child }) => {
-            waitpid(child, None).unwrap();
-        }
-        Err(_) => {
-            println!("Fail to fork");
-        }
+        Err(_) => println!("Fork failed"),
+    }
+}
+
+
+fn redirect_io(inputfd: RawFd, pipefd: (RawFd, RawFd), last: bool) {
+    if inputfd != 0 {
+        dup2(inputfd, 0).expect("Failed to redirect stdin");
+        close(inputfd).ok();
+    }
+
+    if !last {
+        close(pipefd.0).ok();
+        dup2(pipefd.1, 1).expect("Failed to redirect stdout");
+        close(pipefd.1).ok();
     }
 }
