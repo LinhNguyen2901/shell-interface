@@ -61,7 +61,7 @@ impl Command {
             let last = i == len - 1;
             let name = &cmd.arguments[0];
             match path_search::find_command(name) {
-                Some(path) => exec::execute_command(&path, &cmd.arguments[1..], &mut inputfd, last, &mut children),
+                Some(path) => exec::execute_command(&path, &cmd.arguments[1..], &mut inputfd, last, &mut children, cmd.in_file.as_deref(), cmd.out_file.as_deref()),
                 None => {
                     println!("{}: command not found", name);
                     valid = false;
