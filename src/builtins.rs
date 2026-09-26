@@ -1,9 +1,8 @@
 use std::env;
 use std::path::Path;
 use nix::sys::wait::waitpid;
-use nix::unistd::Pid;
 
-use crate::jobs::Job;
+use crate::shell::Job;
 
 pub fn is_builtin(name: &str) -> bool {
     name == "exit" || name == "cd" || name == "jobs"
@@ -65,7 +64,7 @@ pub fn jobs(job_list: &Vec<Job>) {
 pub fn exit(history: &Vec<String>, job_list: &Vec<Job>) {
     // have to wait for background jobs before quitting
     for job in job_list {
-        let _ = waitpid(Pid::from_raw(job.pid), None);
+        let _ = waitpid(job.pid, None);
     }
 
     if history.is_empty() {

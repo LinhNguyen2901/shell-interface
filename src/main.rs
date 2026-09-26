@@ -1,29 +1,26 @@
 use std::io;
 use std::io::Write;
-use std::env;
+use crate::shell::Shell;
 
 mod lexer;
-mod parser;
+mod command;
 mod env_expand;
 mod exec;
-
+mod parser;
 mod tilde;
 mod path_search;
 mod builtins;
-mod jobs;
+mod shell;
 
 
-fn main(){
-    let user = env::var("USER").expect("USER environment variable must be set");
-    let machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
-
-    let mut history: Vec<String> = Vec::new();
-    let mut job_list: Vec<jobs::Job> = Vec::new();
-
+fn main() {
+    let mut shell = Shell::new();
     loop {
-        let pwd = env::var("PWD").expect("PWD environment variable must be set");
-        print!("{user}@{machine}:{pwd}> ");
+        shell.update_env();
+        print!("{}", shell.prompt());
         io::stdout().flush().unwrap();
+
+        shell.reap_background_processes();
 
         let input = lexer::get_input();
 
@@ -40,33 +37,34 @@ fn main(){
             print!("token {i}: {:?}\n", &token_refs.get(i).unwrap())
         }
 
-        let cmd = parser::parse_tokens(token_refs);
-        
-
-        // add to run builtins
-        if cmd.simple_commands.is_empty() {
-            continue;
-        }
- 
-        let cmd_line = input.trim().to_string();
-        let name = cmd.simple_commands[0].arguments[0].clone();
-        let args = &cmd.simple_commands[0].arguments[1..];
- 
-        if builtins::is_builtin(&name) {
-            if name == "exit" {
-                builtins::exit(&history, &job_list);
-                break;
-            } else if name == "cd" {
-                if builtins::cd(args) {
-                    history.push(cmd_line);
+        match parser::parse_tokens(token_refs){
+            Ok(cmd) => {
+                // add to run builtins
+                if cmd.simple_commands.is_empty() {
+                    continue;
                 }
-            } else if name == "jobs" {
-                builtins::jobs(&job_list);
-                history.push(cmd_line);
-            }
-        } else if cmd.execute() {
-            history.push(cmd_line);
-        }
         
+                let cmd_line = input.trim().to_string();
+                let name = cmd.simple_commands[0].arguments[0].clone();
+                let args = &cmd.simple_commands[0].arguments[1..];
+        
+                if builtins::is_builtin(&name) {
+                    if name == "exit" {
+                        builtins::exit(&shell.history, &shell.job_list);
+                        break;
+                    } else if name == "cd" {
+                        if builtins::cd(args) {
+                            shell.history.push(cmd_line);
+                        }
+                    } else if name == "jobs" {
+                        builtins::jobs(&shell.job_list);
+                        shell.history.push(cmd_line);
+                    }
+                } else if cmd.execute(&mut shell) {
+                    shell.history.push(cmd_line);
+                }
+            }
+            Err(err) => println!("{}", err),
+        }
     }
 }

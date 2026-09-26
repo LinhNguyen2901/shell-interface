@@ -4,15 +4,7 @@ use std::os::fd::{RawFd, IntoRawFd};
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 
-pub fn execute_command(
-    path: &str,
-    args: &[String],
-    inputfd: &mut RawFd,
-    last: bool,
-    children: &mut Vec<Pid>,
-    in_file: Option<&str>,
-    out_file: Option<&str>,
-) {
+pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, children: &mut Vec<Pid>, in_file: Option<&str>, out_file: Option<&str>,) -> RawFd {
     let c_path = CString::new(path).unwrap();
 
     let mut c_args = Vec::new();
@@ -26,24 +18,25 @@ pub fn execute_command(
         let (i, o) = pipe().expect("Failed to create pipe.");
         pipefd = (i.into_raw_fd(), o.into_raw_fd());
     }
-
-    match unsafe { fork() } {
+    let mut outputfd: RawFd = 0;
+    match unsafe{fork()} {
         Ok(ForkResult::Parent { child, .. }) => {
             children.push(child);
-            if *inputfd != 0 {
-                close(*inputfd).ok();
+            if inputfd != 0 {
+                close(inputfd).ok();
             }
             if !last && out_file.is_none() {
                 close(pipefd.1).ok();
-                *inputfd = pipefd.0;
+                outputfd = pipefd.0;
             }
         }
         Ok(ForkResult::Child) => {
-            redirect_io(*inputfd, pipefd, last, in_file, out_file);
+            redirect_io(inputfd, pipefd, last, in_file, out_file);
             execv(&c_path, &c_args).unwrap();
         }
         Err(_) => println!("Fork failed"),
     }
+    outputfd
 }
 
 fn redirect_io(
