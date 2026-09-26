@@ -13,7 +13,6 @@ pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, 
 
     let mut pipefd: (RawFd, RawFd) = (-1, -1);
     if !last {
-        println!("balls");
         let (i, o) = pipe().expect("Failed to create pipe.");
         pipefd = (i.into_raw_fd(), o.into_raw_fd())
     }

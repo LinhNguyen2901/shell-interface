@@ -35,6 +35,7 @@ impl SimpleCommand {
 }
 #[derive(Debug)]
 pub struct Command {
+    pub cmd_line: String,
     pub simple_commands: Vec<SimpleCommand>,
     pub background: bool,
 }
@@ -42,6 +43,7 @@ pub struct Command {
 impl Command {
     pub fn new() -> Self {
         Self {
+            cmd_line: String::new(),
             simple_commands: Vec::new(),
             background: false,
         }
@@ -50,8 +52,8 @@ impl Command {
         // TODO: checking
         self.simple_commands.push(simple_command);
     }
-    pub fn execute(&self) {
-        if self.simple_commands.is_empty() { return; }
+    pub fn execute(&self, shell: &mut crate::shell::Shell) -> bool{
+        if self.simple_commands.is_empty() { return false; }
         let mut inputfd: RawFd = 0;
         let mut children: Vec<Pid> = Vec::new();
         let len = self.simple_commands.len();
@@ -61,14 +63,21 @@ impl Command {
             let name = &cmd.arguments[0];
             match path_search::find_command(name) {
                 Some(path) => inputfd = exec::execute_command(&path, &cmd.arguments[1..], inputfd, last, &mut children),
-                None => println!("{}: command not found", name),
+                None => {println!("{}: command not found", name); return false;}
             }
         }
-        if !self.background {
+        if self.background {
+            for pid in children.iter() {
+                shell.jobs = shell.jobs + 1;
+                shell.job_list.push(crate::shell::Job::new(shell.jobs, *pid, self.cmd_line.clone()));
+            }
+        } 
+        else {
             for pid in children.iter() {
                 waitpid(*pid, None).ok();
             }
         }
+        true
     }
     
     pub fn clear(&mut self) {

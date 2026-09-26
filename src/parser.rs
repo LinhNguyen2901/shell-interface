@@ -13,6 +13,7 @@ enum Vocab {
 pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
     let mut last_token = Vocab::PIPE;
     let mut output = Command::new();
+    output.cmd_line = tokens.join(" ");
 
     for tok in tokens {
         match tok {
@@ -31,7 +32,7 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
             "&" => {
                 output.background = true;
                 match last_token {
-                    Vocab::CMD | Vocab::WORD => {last_token = Vocab::LESS;}
+                    Vocab::CMD | Vocab::WORD => {last_token = Vocab::NONE;}
                     _ => return Err("Unexpected <".to_string()),
                 }
             }
