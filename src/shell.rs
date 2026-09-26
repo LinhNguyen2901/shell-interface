@@ -45,7 +45,10 @@ impl Shell {
         loop {
             match waitpid(Pid::from_raw(-1), Some(WaitPidFlag::WNOHANG)) {
                 Ok(WaitStatus::Exited(child_pid, _)) => {
-                    self.job_list.retain(|job| job.pid != child_pid);
+                    if let Some(job) = self.job_list.iter().find(|j| j.pid == child_pid) {
+                        println!("[{}]+ done {}", job.job_num, job.cmd_line);
+                    }
+                    self.job_list.retain(|job| job.pid != child_pid);                
                 }
                 Ok(WaitStatus::Signaled(child_pid, signal, _core_dump)) => {
                     println!("Child {} was killed by signal: {:?}", child_pid, signal);

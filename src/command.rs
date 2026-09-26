@@ -67,9 +67,10 @@ impl Command {
             }
         }
         if self.background {
-            for pid in children.iter() {
+            if let Some(last_pid) = children.last() {
                 shell.jobs = shell.jobs + 1;
-                shell.job_list.push(crate::shell::Job::new(shell.jobs, *pid, self.cmd_line.clone()));
+                println!("[{}] {}", shell.jobs, last_pid);
+                shell.job_list.push(crate::shell::Job::new(shell.jobs, *last_pid, self.cmd_line.clone()));
             }
         } 
         else {
