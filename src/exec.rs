@@ -54,7 +54,13 @@ fn redirect_io(
     out_file: Option<&str>,
 ) {
     if let Some(path) = in_file {
-        let file = OpenOptions::new().read(true).open(path).expect("Failed to open input file");
+        let file = match OpenOptions::new().read(true).open(path) {
+            Ok(f) => f,
+            Err(_) => {
+                eprintln!("{}: No such file or directory", path);
+                std::process::exit(1);
+            }
+        };
         let fd = file.into_raw_fd();
         dup2(fd, 0).expect("Failed to redirect stdin from file");
         close(fd).ok();
@@ -64,13 +70,19 @@ fn redirect_io(
     }
 
     if let Some(path) = out_file {
-        let file = OpenOptions::new()
+        let file = match OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
             .mode(0o600)
             .open(path)
-            .expect("Failed to open output file");
+        {
+            Ok(f) => f,
+            Err(_) => {
+                eprintln!("{}: could not open for writing", path);
+                std::process::exit(1);
+            }
+        };
         let fd = file.into_raw_fd();
         dup2(fd, 1).expect("Failed to redirect stdout to file");
         close(fd).ok();
@@ -80,6 +92,7 @@ fn redirect_io(
         close(pipefd.1).ok();
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
