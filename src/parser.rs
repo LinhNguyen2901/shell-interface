@@ -51,14 +51,22 @@ impl Command {
     pub fn print(&self) {
         
     }
-    pub fn execute(&self) {
+
+    // returns false if a command wasn't found
+    pub fn execute(&self) -> bool {
+        let mut valid = true;
+
         for cmd in &self.simple_commands {
             let name = &cmd.arguments[0];
             match path_search::find_command(name) {
                 Some(path) => exec::execute_command(&path, &cmd.arguments[1..]),
-                None => println!("{}: command not found", name),
+                None => {
+                    println!("{}: command not found", name);
+                    valid = false;
+                }
             }
         }
+        valid
     }
     
     pub fn clear(&mut self) {
