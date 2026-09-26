@@ -1,13 +1,14 @@
 use crate::command::{Command, SimpleCommand};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum Vocab {
     NONE,
     CMD,
     WORD,
     PIPE,
     GREAT,
-    LESS
+    LESS,
+    REDIR_WORD
 }
 
 pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
@@ -16,24 +17,25 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
     output.cmd_line = tokens.join(" ");
 
     for tok in tokens {
+        println!("{:?}", last_token);
         match tok {
             "|" => match last_token {
-                Vocab::CMD | Vocab::WORD => {last_token = Vocab::PIPE;}
+                Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::PIPE;}
                 _ => return Err("Unexpected |".to_string()),
             }
             ">" => match last_token {
-                Vocab::CMD | Vocab::WORD => {last_token = Vocab::GREAT;}
+                Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::GREAT;}
                 _ => return Err("Unexpected >".to_string()),
             }
             "<" => match last_token {
-                Vocab::CMD | Vocab::WORD => {last_token = Vocab::LESS;}
+                Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::LESS;}
                 _ => return Err("Unexpected <".to_string()),
             }
             "&" => {
                 output.background = true;
                 match last_token {
                     Vocab::CMD | Vocab::WORD => {last_token = Vocab::NONE;}
-                    _ => return Err("Unexpected <".to_string()),
+                    _ => return Err("Unexpected &".to_string()),
                 }
             }
             word => match last_token{
@@ -47,12 +49,12 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
                 Vocab::GREAT => {if let Some(last_cmd) = output.simple_commands.last_mut() {
                         last_cmd.out_file = Some(tok.to_string());
                     } 
-                    last_token = Vocab::NONE;}
+                    last_token = Vocab::REDIR_WORD;}
                 Vocab::LESS => {if let Some(last_cmd) = output.simple_commands.last_mut() {
                         last_cmd.in_file = Some(tok.to_string());
                     }
-                    last_token = Vocab::NONE;}
-                Vocab::NONE => return Err(format!("Unexpected syntax: {word}")),
+                    last_token = Vocab::REDIR_WORD;}
+                Vocab::NONE | Vocab::REDIR_WORD => return Err(format!("Unexpected syntax: {word}")),
             }
         }
     }

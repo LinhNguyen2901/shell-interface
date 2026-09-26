@@ -4,16 +4,7 @@ use std::os::fd::{RawFd, IntoRawFd};
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 
-pub fn execute_command(
-    path: &str,
-    args: &[String],
-    inputfd: &mut RawFd,
-    last: bool,
-    children: &mut Vec<Pid>,
-    in_file: Option<&str>,
-    out_file: Option<&str>,
-) {
-pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, children: &mut Vec<Pid>) -> RawFd {
+pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, children: &mut Vec<Pid>, in_file: Option<&str>, out_file: Option<&str>,) -> RawFd {
     let c_path = CString::new(path).unwrap();
 
     let mut c_args = Vec::new();
@@ -40,7 +31,7 @@ pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, 
             }
         }
         Ok(ForkResult::Child) => {
-            redirect_io(*inputfd, pipefd, last, in_file, out_file);
+            redirect_io(inputfd, pipefd, last, in_file, out_file);
             execv(&c_path, &c_args).unwrap();
         }
         Err(_) => println!("Fork failed"),
