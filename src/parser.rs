@@ -50,18 +50,22 @@ impl Command {
         // TODO: checking
         self.simple_commands.push(simple_command);
     }
-    pub fn execute(&self) {
-        if self.simple_commands.is_empty() { return; }
+    pub fn execute(&self) -> bool {
+        if self.simple_commands.is_empty() { return false; }
         let mut inputfd: RawFd = 0;
         let mut children: Vec<Pid> = Vec::new();
         let len = self.simple_commands.len();
+        let mut valid = true; 
 
         for (i, cmd) in self.simple_commands.iter().enumerate() {
             let last = i == len - 1;
             let name = &cmd.arguments[0];
             match path_search::find_command(name) {
                 Some(path) => exec::execute_command(&path, &cmd.arguments[1..], &mut inputfd, last, &mut children),
-                None => println!("{}: command not found", name),
+                None => {
+                    println!("{}: command not found", name);
+                    valid = false;
+                }
             }
         }
         if !self.background {
@@ -69,6 +73,7 @@ impl Command {
                 waitpid(*pid, None).ok();
             }
         }
+        valid
     }
     
     pub fn clear(&mut self) {
