@@ -1,23 +1,50 @@
 use std::io;
 use std::io::Write;
 use std::env;
+use nix::{sys::wait::{waitpid, WaitPidFlag, WaitStatus},unistd::Pid};
 
 mod lexer;
-mod parser;
+mod command;
 mod env_expand;
 mod exec;
-
+mod parser;
 mod tilde;
 mod path_search;
 
+pub struct Shell {
+    pub background_pid: Vec<Pid>,
+    pub user: String,
+    pub machine: String,
+    pub pwd: String
+}
+impl Shell {
+    pub fn new() -> Self {
+        Self {
+            background_pid: Vec::new(),
+            user: env::var("USER").expect("USER environment variable must be set"),
+            machine: env::var("MACHINE").expect("MACHINE environment variable must be set"),
+            pwd: env::var("PWD").expect("PWD environment variable must be set"),
+        }
+    }
+    pub fn update_env(&mut self){
+        self.user = env::var("USER").expect("USER environment variable must be set");
+        self.machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
+        self.pwd = env::var("PWD").expect("PWD environment variable must be set");
+    }
+    pub fn prompt(&self) -> String {
+        format!("{}@{}:{}> ", self.user, self.machine, self.pwd)
+    }
+}
 fn main(){
-    let user = env::var("USER").expect("USER environment variable must be set");
-    let machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
-    let pwd = env::var("PWD").expect("PWD environment variable must be set");
-
+    let mut shell = Shell::new();
     loop {
-        print!("{user}@{machine}:{pwd}> ");
+        shell.update_env();
+        print!("{}", shell.prompt());
         io::stdout().flush().unwrap();
+
+        for pid in shell.background_pid.iter() {
+            waitpid(*pid, Some(WaitPidFlag::WNOHANG)).ok();
+        }
 
         let input = lexer::get_input();
 
@@ -34,7 +61,10 @@ fn main(){
             print!("token {i}: {:?}\n", &token_refs.get(i).unwrap())
         }
 
-        let cmd = parser::parse_tokens(token_refs);
-        cmd.execute();
+        match parser::parse_tokens(token_refs){
+            Ok(cmd) => cmd.execute(),
+            Err(err) => println!("{}", err),
+        }
+        
     }
 }
