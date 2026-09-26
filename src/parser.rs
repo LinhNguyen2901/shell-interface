@@ -34,7 +34,7 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
             "&" => {
                 output.background = true;
                 match last_token {
-                    Vocab::CMD | Vocab::WORD => {last_token = Vocab::NONE;}
+                    Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::NONE;}
                     _ => return Err("Unexpected &".to_string()),
                 }
             }
