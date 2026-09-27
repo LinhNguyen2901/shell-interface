@@ -11,9 +11,11 @@ mod tilde;
 mod path_search;
 mod builtins;
 mod shell;
+mod shellception;
 
 
 fn main() {
+    shellception::increase_shell_level();
     let mut shell = Shell::new();
     loop {
         shell.update_env();
@@ -23,6 +25,12 @@ fn main() {
         shell.reap_background_processes();
 
         let input = lexer::get_input();
+        // empty string means end of input (Ctrl+D or end of a file), so quit like exit
+        if input.is_empty() {
+            println!();
+            builtins::exit(&shell.history, &shell.job_list);
+            break;
+        }
 
         let tokens = lexer::get_tokens(&input);
         let mut expanded_tokens: Vec<String> = Vec::new();
@@ -32,6 +40,9 @@ fn main() {
         }
 
         let token_refs: Vec<&str> = expanded_tokens.iter().map(|s| s.as_str()).collect();
+        if token_refs.is_empty() {
+            continue;
+        }
 
         for i in 0..token_refs.len() {
             print!("token {i}: {:?}\n", &token_refs.get(i).unwrap())
