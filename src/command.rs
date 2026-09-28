@@ -1,5 +1,6 @@
 use nix::{sys::wait::waitpid,unistd::Pid};
 use std::os::fd::{RawFd};
+use crate::builtins;
 use crate::exec;
 use crate::path_search;
 use std::path::Path;
@@ -31,7 +32,6 @@ impl SimpleCommand {
         }
     }
     pub fn insert_argument(&mut self, argument: String) {
-        // TODO: checking
         self.arguments.push(argument);
     }
 }
@@ -91,11 +91,10 @@ impl Command {
                 &cmd.arguments[1..],
                 inputfd,
                 last,
-                &mut children,
                 cmd.in_file.as_deref(),
                 cmd.out_file.as_deref(),
             ){
-                Ok(fd) => inputfd = fd,
+                Ok((child, fd)) => {inputfd = fd; children.push(child);}
                 Err(e) => {return Err(e);}
             }
         }

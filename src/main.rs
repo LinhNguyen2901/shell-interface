@@ -67,7 +67,7 @@ fn main() {
                 }
                 else {
                     match cmd.execute(&mut shell) {
-                        Ok(_) => shell.history.push(input.trim().to_string()),
+                        Ok(_) => shell.history.push(cmd_line),
                         Err(e) => eprintln!("{}", e)
                     }
                 }
