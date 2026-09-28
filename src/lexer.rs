@@ -6,11 +6,15 @@ pub fn get_input() -> String {
     return input;
 }
 
-// Referenced from https://stackoverflow.com/questions/32257273/split-a-string-keeping-the-separators
+// Referenced from:
+// https://stackoverflow.com/questions/32257273/split-a-string-keeping-the-separators
 pub fn get_tokens(input:&str) -> Vec<&str> {
     let mut result = Vec::new();
     let mut last = 0;
-    for (index, matched) in input.match_indices(|c: char| c.is_whitespace() || c == '|' || c == '<' || c == '>' || c == '&'){
+    let is_separator = |c: char| {
+        c.is_whitespace() || c == '|' || c == '<' || c == '>' || c == '&'
+    };
+    for (index, matched) in input.match_indices(is_separator) {
         if last != index {
             result.push(&input[last..index]);
         }
