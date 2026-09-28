@@ -50,16 +50,19 @@ fn main() {
             Ok(cmd) => {
                 // add to run builtins
                 if cmd.simple_commands.is_empty() { continue; }
-                if cmd.simple_commands.len() == 1 && builtins::is_builtin(&cmd.simple_commands[0].arguments[0]){
+                let first = &cmd.simple_commands[0];
+                if cmd.simple_commands.len() == 1 && builtins::is_builtin(&first.arguments[0]) {
                     let cmd_line = input.trim().to_string();
-                    let name = cmd.simple_commands[0].arguments[0].clone();
-                    let args = &cmd.simple_commands[0].arguments[1..];
-            
-                    if builtins::is_builtin(&name) {
-                        match exec::execute_builtin(&mut shell, &name, &args) {
-                            Ok(_) => shell.history.push(cmd_line),
-                            Err(e) => eprintln!("{}", e),
-                        }
+                    let name = first.arguments[0].clone();
+                    let args = &first.arguments[1..];
+                    let in_file = first.in_file.as_deref();
+                    let out_file = first.out_file.as_deref();
+
+                    let result =
+                        exec::run_builtin_redirected(&mut shell, &name, args, in_file, out_file);
+                    match result {
+                        Ok(_) => shell.history.push(cmd_line),
+                        Err(e) => eprintln!("{}", e),
                     }
                 }
                 else {
