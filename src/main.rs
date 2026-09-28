@@ -49,16 +49,26 @@ fn main() {
         match parser::parse_tokens(token_refs){
             Ok(cmd) => {
                 // add to run builtins
-                if cmd.simple_commands.is_empty() { continue; }
-                if cmd.simple_commands.len() == 1 && builtins::is_builtin(&cmd.simple_commands[0].arguments[0]){
-                    let cmd_line = input.trim().to_string();
-                    let name = cmd.simple_commands[0].arguments[0].clone();
-                    let args = &cmd.simple_commands[0].arguments[1..];
-            
-                    if builtins::is_builtin(&name) {
-                        match exec::execute_builtin(&mut shell, &name, &args) {
-                            Ok(_) => shell.history.push(cmd_line),
-                            Err(e) => eprintln!("{}", e),
+                if cmd.simple_commands.is_empty() {
+                    continue;
+                }
+        
+                let cmd_line = input.trim().to_string();
+                let name = cmd.simple_commands[0].arguments[0].clone();
+                let args = &cmd.simple_commands[0].arguments[1..];
+                let plain_builtin = builtins::is_builtin(&name)
+                    && cmd.simple_commands.len() == 1
+                    && !cmd.background
+                    && cmd.simple_commands[0].in_file.is_none()
+                    && cmd.simple_commands[0].out_file.is_none();
+
+                if plain_builtin {
+                    if name == "exit" {
+                        builtins::exit(&shell.history, &shell.job_list);
+                        break;
+                    } else if name == "cd" {
+                        if builtins::cd(args) {
+                            shell.history.push(cmd_line);
                         }
                     }
                 }

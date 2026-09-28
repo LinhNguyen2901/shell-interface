@@ -22,9 +22,9 @@ with I/O redirection, piping, and background processing.
 
 | Name        | GitHub ID(s)                          |
 | ----------- | ------------------------------------- |
-| Jenny Jiang | JennyJiang / specificShark            |
+| Jenny Jiang | specificShark            |
 | Linh Nguyen | LinhNguyen2901                        |
-| Sid Nguyen  | hoangdung-nguyen / HoangDung Nguyen   |
+| Sid Nguyen  | hoangdung-nguyen  |
 
 ## Division of Labor
 
@@ -180,9 +180,6 @@ exit
 
 - The shell requires `USER`, `MACHINE`, and `PWD` to be set; otherwise it
   stops with an error at startup.
-- For background pipelines only the last command's PID is tracked as the job.
-- An input file that exists but is not a regular file (for example a
-  directory) is not rejected before the command runs.
 - Quotes, escaped characters, globs, and regular expressions are not handled,
   as allowed by the assignment. Only whole-token `$VAR` arguments are expanded.
 
@@ -199,11 +196,11 @@ exit
 
 | Date       | Work done                                                        |
 | ---------- | ---------------------------------------------------------------- |
-| 2026-09-22 | Environment variable expansion, lexer fix, external command execution with fork/execv                                |
-| 2026-09-25 | Implemented I/O redirection, fixed a child path bug, added and implemented extra credit 2                                  |
-| 2026-09-26 | Fixed a parser bug, fixed bugs and added missing requirements,   |
-|            | finished piping with I/O redirection                     |
+| 2026-09-22 | Environment variable expansion, lexer fix, external command execution with fork/execv                                        |
+| 2026-09-25 | Implemented I/O redirection, fixed a child path bug, added and implemented extra credit 2                                       |
+| 2026-09-26 | Fixed a parser bug, fixed bugs and added missing requirements, finished piping with I/O redirection                             |
 | 2026-09-27 | Wrote the README                                                 |
+| 2026-09-28 | Fixed builtins bypassing pipes/redirection, fixed exit not printing job-done messages, fixed stdin buffering breaking shell-ception under piped input                                 |
 
 ### Sid Nguyen
 
@@ -212,8 +209,7 @@ exit
 | 2026-09-10 | Created the repository and `.gitignore`; implemented the parser  |
 | 2026-09-24 | Started piping                                                   |
 | 2026-09-25 | Finished piping (PR #4); started background processing (PR #6)   |
-| 2026-09-26 | Finished background processing (PR #8); integrated I/O           |
-|            | redirection with background jobs and fixed a parsing bug (PR #9) |
+| 2026-09-26 | Finished background processing (PR #8); integrated I/O redirection with background jobs and fixed a parsing bug (PR #9) |
 
 ## Group Meetings
 

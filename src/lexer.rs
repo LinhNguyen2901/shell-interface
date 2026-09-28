@@ -1,8 +1,20 @@
-use std::io;
+use nix::unistd::read;
+
 
 pub fn get_input() -> String {
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    let mut byte = [0u8; 1];
+    loop {
+        match read(0, &mut byte) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {
+                input.push(byte[0] as char);
+                if byte[0] == b'\n' {
+                    break;
+                }
+            }
+        }
+    }
     return input;
 }
 

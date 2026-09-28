@@ -1,5 +1,6 @@
 use nix::{sys::wait::waitpid,unistd::Pid};
 use std::os::fd::{RawFd};
+use crate::builtins;
 use crate::exec;
 use crate::path_search;
 use std::path::Path;
@@ -64,14 +65,15 @@ impl Command {
         let mut paths: Vec<String> = Vec::new();
         for cmd in &self.simple_commands {
             let name = &cmd.arguments[0];
-            match path_search::find_command(name) {
-                Some(path) => paths.push(path),
-                None => {
-                    if crate::builtins::is_builtin(name){
-                        paths.push(name.to_string());
-                    }
-                    else {
-                        return Err(format!("{}: command not found", name));
+            if builtins::is_builtin(name) {
+                // built-ins don't live on disk, so there is no path to search for
+                paths.push(String::new());
+            } else {
+                match path_search::find_command(name) {
+                    Some(path) => paths.push(path),
+                    None => {
+                        println!("{}: command not found", name);
+                        return false;
                     }
                 }
             }
