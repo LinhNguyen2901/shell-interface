@@ -1,5 +1,6 @@
 use nix::{sys::wait::waitpid,unistd::Pid};
 use std::os::fd::{RawFd};
+use crate::builtins;
 use crate::exec;
 use crate::path_search;
 use std::path::Path;
@@ -64,11 +65,16 @@ impl Command {
         let mut paths: Vec<String> = Vec::new();
         for cmd in &self.simple_commands {
             let name = &cmd.arguments[0];
-            match path_search::find_command(name) {
-                Some(path) => paths.push(path),
-                None => {
-                    println!("{}: command not found", name);
-                    return false;
+            if builtins::is_builtin(name) {
+                // built-ins don't live on disk, so there is no path to search for
+                paths.push(String::new());
+            } else {
+                match path_search::find_command(name) {
+                    Some(path) => paths.push(path),
+                    None => {
+                        println!("{}: command not found", name);
+                        return false;
+                    }
                 }
             }
             if let Some(file) = &cmd.in_file {
@@ -86,15 +92,30 @@ impl Command {
 
         for (i, cmd) in self.simple_commands.iter().enumerate() {
             let last = i == len - 1;
-            inputfd = exec::execute_command(
-                &paths[i],
-                &cmd.arguments[1..],
-                inputfd,
-                last,
-                &mut children,
-                cmd.in_file.as_deref(),
-                cmd.out_file.as_deref(),
-            );
+            let name = &cmd.arguments[0];
+            inputfd = if builtins::is_builtin(name) {
+                exec::execute_builtin(
+                    name,
+                    &cmd.arguments[1..],
+                    inputfd,
+                    last,
+                    &mut children,
+                    cmd.in_file.as_deref(),
+                    cmd.out_file.as_deref(),
+                    &shell.history,
+                    &shell.job_list,
+                )
+            } else {
+                exec::execute_command(
+                    &paths[i],
+                    &cmd.arguments[1..],
+                    inputfd,
+                    last,
+                    &mut children,
+                    cmd.in_file.as_deref(),
+                    cmd.out_file.as_deref(),
+                )
+            };
         }
         if self.background {
             if let Some(last_pid) = children.last() {

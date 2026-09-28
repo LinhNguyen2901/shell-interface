@@ -61,9 +61,7 @@ impl Shell {
                     eprintln!("Error waiting for child process: {:?}", err);
                     break;
                 }
-                _ => {
-                    println!("Other state change occurred (Stopped/Continued).");
-                }
+                _ => {}
             }
         }
     }

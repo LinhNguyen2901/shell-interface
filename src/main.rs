@@ -55,8 +55,13 @@ fn main() {
                 let cmd_line = input.trim().to_string();
                 let name = cmd.simple_commands[0].arguments[0].clone();
                 let args = &cmd.simple_commands[0].arguments[1..];
-        
-                if builtins::is_builtin(&name) {
+                let plain_builtin = builtins::is_builtin(&name)
+                    && cmd.simple_commands.len() == 1
+                    && !cmd.background
+                    && cmd.simple_commands[0].in_file.is_none()
+                    && cmd.simple_commands[0].out_file.is_none();
+
+                if plain_builtin {
                     if name == "exit" {
                         builtins::exit(&shell.history, &shell.job_list);
                         break;

@@ -51,7 +51,7 @@ pub fn cd(args: &[String]) -> bool {
     true
 }
 
-pub fn jobs(job_list: &Vec<Job>) {
+pub fn jobs(job_list: &[Job]) {
     if job_list.is_empty() {
         println!("No active background processes");
         return;
@@ -61,10 +61,11 @@ pub fn jobs(job_list: &Vec<Job>) {
     }
 }
 
-pub fn exit(history: &Vec<String>, job_list: &Vec<Job>) {
+pub fn exit(history: &[String], job_list: &[Job]) {
     // have to wait for background jobs before quitting
     for job in job_list {
         let _ = waitpid(job.pid, None);
+        println!("[{}]+ done {}", job.job_num, job.cmd_line);
     }
 
     if history.is_empty() {

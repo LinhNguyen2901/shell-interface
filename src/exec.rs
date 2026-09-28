@@ -4,6 +4,8 @@ use nix::libc::_exit;
 use std::os::fd::{RawFd, IntoRawFd};
 use std::fs::{OpenOptions, Permissions};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use crate::builtins;
+use crate::shell::Job;
 
 pub fn execute_command(
     path: &str,
@@ -46,6 +48,49 @@ pub fn execute_command(
                 eprintln!("{}: {}", path, e.desc());
             }
             unsafe { _exit(1) }
+        }
+        Err(_) => println!("Fork failed"),
+    }
+    outputfd
+}
+
+pub fn execute_builtin(
+    name: &str,
+    args: &[String],
+    inputfd: RawFd,
+    last: bool,
+    children: &mut Vec<Pid>,
+    in_file: Option<&str>,
+    out_file: Option<&str>,
+    history: &[String],
+    job_list: &[Job],
+) -> RawFd {
+    let mut pipefd: (RawFd, RawFd) = (-1, -1);
+    if !last && out_file.is_none() {
+        let (i, o) = pipe().expect("Failed to create pipe.");
+        pipefd = (i.into_raw_fd(), o.into_raw_fd());
+    }
+    let mut outputfd: RawFd = 0;
+    match unsafe{fork()} {
+        Ok(ForkResult::Parent { child, .. }) => {
+            children.push(child);
+            if inputfd != 0 {
+                close(inputfd).ok();
+            }
+            if !last && out_file.is_none() {
+                close(pipefd.1).ok();
+                outputfd = pipefd.0;
+            }
+        }
+        Ok(ForkResult::Child) => {
+            redirect_io(inputfd, pipefd, last, in_file, out_file);
+            match name {
+                "cd" => { builtins::cd(args); }
+                "jobs" => { builtins::jobs(job_list); }
+                "exit" => { builtins::exit(history, job_list); }
+                _ => {}
+            }
+            unsafe { _exit(0) }
         }
         Err(_) => println!("Fork failed"),
     }
