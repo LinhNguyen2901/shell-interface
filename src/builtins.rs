@@ -9,18 +9,16 @@ pub fn is_builtin(name: &str) -> bool {
 }
 
 // returns true if cd worked -> main knows it is a valid command
-pub fn cd(args: &[String]) -> bool {
+pub fn cd(args: &[String]) -> Result<(), String> {
     if args.len() > 1 {
-        println!("cd: too many arguments");
-        return false;
+        return Err("cd: too many arguments".to_string());
     }
 
     let target = if args.len() == 0 {
         match env::var("HOME") {
             Ok(home) => home,
             Err(_) => {
-                println!("cd: HOME not set");
-                return false;
+                return Err("cd: HOME not set".to_string());
             }
         }
     } else {
@@ -29,17 +27,14 @@ pub fn cd(args: &[String]) -> bool {
 
     let path = Path::new(&target);
     if !path.exists() {
-        println!("cd: {}: No such file or directory", target);
-        return false;
+        return Err(format!("cd: {}: No such file or directory", target));
     }
     if !path.is_dir() {
-        println!("cd: {}: Not a directory", target);
-        return false;
+        return Err(format!("cd: {}: Not a directory", target));
     }
 
     if env::set_current_dir(path).is_err() {
-        println!("cd: {}: could not change directory", target);
-        return false;
+        return Err(format!("cd: {}: could not change directory", target));
     }
 
     // update $PWD so the prompt shows the new directory
@@ -48,13 +43,12 @@ pub fn cd(args: &[String]) -> bool {
             env::set_var("PWD", new_dir);
         }
     }
-    true
+    Ok(())
 }
 
 pub fn jobs(job_list: &[Job]) {
     if job_list.is_empty() {
         println!("No active background processes");
-        return;
     }
     for job in job_list {
         println!("[{}]+ {} {}", job.job_num, job.pid, job.cmd_line);

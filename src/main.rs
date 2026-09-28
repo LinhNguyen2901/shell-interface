@@ -24,12 +24,13 @@ fn main() {
         shell.update_env();
         print!("{}", shell.prompt());
         io::stdout().flush().unwrap();
+        io::stderr().flush().unwrap();
 
         let input = lexer::get_input();
         // empty string means end of input (Ctrl+D or end of a file), so quit like exit
         if input.is_empty() {
             println!();
-            builtins::exit(&shell.history, &shell.job_list);
+            let _ = builtins::exit(&shell.history, &shell.job_list);
             break;
         }
 
@@ -69,17 +70,16 @@ fn main() {
                         if builtins::cd(args) {
                             shell.history.push(cmd_line);
                         }
-                    } else if name == "jobs" {
-                        // a job may have finished while the user was typing
-                        shell.reap_background_processes();
-                        builtins::jobs(&shell.job_list);
-                        shell.history.push(cmd_line);
                     }
-                } else if cmd.execute(&mut shell) {
-                    shell.history.push(cmd_line);
+                }
+                else {
+                    match cmd.execute(&mut shell) {
+                        Ok(_) => shell.history.push(input.trim().to_string()),
+                        Err(e) => eprintln!("{}", e)
+                    }
                 }
             }
-            Err(err) => println!("{}", err),
+            Err(err) => eprintln!("{}", err),
         }
     }
 }
