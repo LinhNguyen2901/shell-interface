@@ -28,33 +28,21 @@ with I/O redirection, piping, and background processing.
 
 ## Division of Labor
 
-Our division of labor document was submitted on Canvas before the 9/10/26
-deadline. The table below records who worked on each part.
-
 | Part                          | Members                      |
 | ----------------------------- | ---------------------------- |
 | Part 1: Prompt                | Sid Nguyen                   |
 | Part 2: Environment Variables | Linh Nguyen                  |
 | Part 3: Tilde Expansion       | Jenny Jiang                  |
-| Part 4: `$PATH` Search        | Jenny Jiang, Sid Nguyen      |
-| Part 5: External Commands     | Linh Nguyen, Jenny Jiang     |
-| Part 6: I/O Redirection       | Linh Nguyen, Sid Nguyen      |
-| Part 7: Piping                | Sid Nguyen, Linh Nguyen      |
-| Part 8: Background Processing | Sid Nguyen, Jenny Jiang      |
-| Part 9: Internal Commands     | Jenny Jiang, Linh Nguyen     |
-| Extra Credit 1: Unlimited pipes            | Sid Nguyen, Linh Nguyen |
-| Extra Credit 2: Piping and I/O redirection | Linh Nguyen, Jenny Jiang|
-| Extra Credit 3: Shell-ception              | Jenny Jiang, Sid Nguyen |
-
-### Final contributions
-
-- **Jenny Jiang:** tilde expansion and `$PATH` search integration; built-in
-  commands `cd`, `jobs`, and `exit`; shell-ception extra credit.
-- **Linh Nguyen:** environment variable expansion; external command execution;
-  I/O redirection; bug fixes across the parser and execution code; piping
-  with redirection.
-- **Sid Nguyen:** repository setup; parser; piping; background processing;
-  integration of I/O redirection with the parser and background jobs.
+| Part 4: `$PATH` Search        | Jenny Jiang      |
+| Part 5: External Commands     | Linh Nguyen     |
+| Part 6: I/O Redirection       | Linh Nguyen     |
+| Part 7: Piping                | Sid Nguyen |
+| Part 8: Background Processing | Sid Nguyen|
+| Part 9: Internal Commands     | Jenny Jiang|
+| Extra Credit 1: Unlimited pipes            | Sid Nguyen|
+| Extra Credit 2: Piping and I/O redirection | Linh Nguyen|
+| Extra Credit 3: Shell-ception              | Jenny Jiang|
+| README/Documentation              | Linh Nguyen|
 
 ## File Listing
 
@@ -132,37 +120,6 @@ Example: `mnguyen@linprog2.cs.fsu.edu:/home/grads/mnguyen>`
 | 8    | Background processing  | `command.rs`, `shell.rs`                    |
 | 9    | Built-in commands      | `builtins.rs`, `main.rs`                    |
 
-How each part works:
-
-- **Environment variables:** a token that starts with `$` is replaced by the
-  value from `getenv`. Unknown variables are left unchanged.
-- **Tilde expansion:** `~` on its own, or a token starting with `~/`, is
-  replaced with `$HOME`.
-- **`$PATH` search:** commands containing `/` are used as given. Otherwise each
-  directory in `$PATH` is checked for an executable file. If none is found the
-  shell prints `command not found`.
-- **External commands:** the shell calls `fork()`, and the child calls
-  `execv()` with the resolved path and arguments. The parent waits for the
-  child unless the command is a background job.
-- **I/O redirection:** `<`, `>`, and both in either order are supported. Input
-  files are opened read-only and never modified. Output files are created with
-  mode `-rw-------` and truncated if they already exist. A missing input file
-  prints an error and the command does not run.
-- **Piping:** each command in a pipeline gets its own child process, and the
-  processes run concurrently with their stdin/stdout connected by pipes.
-- **Background processing:** a trailing `&` runs the command without waiting.
-  The shell prints `[job] pid` when the job starts and `[job]+ done cmdline`
-  when it finishes. For a pipeline the PID printed is the last command's PID.
-  Job numbers start at 1 and are never reused. Finished jobs are collected in
-  the main loop with a non-blocking `waitpid`.
-- **`exit`:** waits for any running background jobs, then prints the last three
-  valid commands (only the last one if fewer than three, or a message if there
-  were none).
-- **`cd`:** with no argument goes to `$HOME`. Prints an error for more than one
-  argument, a target that does not exist, or a target that is not a directory.
-  `$PWD` is updated so the prompt shows the new directory.
-- **`jobs`:** prints `[job]+ pid cmdline` for each active background job, or a
-  message if there are none.
 
 ## Extra Credit
 
