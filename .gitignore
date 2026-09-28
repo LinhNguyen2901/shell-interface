@@ -1,2 +1,6 @@
 /target
 .DS_Store
+bin/
+.crates.toml
+.crates2.json
+run_tests.sh
