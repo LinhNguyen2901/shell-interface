@@ -72,8 +72,7 @@ impl Command {
                 match path_search::find_command(name) {
                     Some(path) => paths.push(path),
                     None => {
-                        println!("{}: command not found", name);
-                        return false;
+                        return Err(format!("{}: command not found", name));
                     }
                 }
             }

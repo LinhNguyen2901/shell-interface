@@ -63,18 +63,14 @@ fn main() {
                     && cmd.simple_commands[0].out_file.is_none();
 
                 if plain_builtin {
-                    if name == "exit" {
-                        builtins::exit(&shell.history, &shell.job_list);
-                        break;
-                    } else if name == "cd" {
-                        if builtins::cd(args) {
-                            shell.history.push(cmd_line);
-                        }
+                    match exec::execute_builtin(&mut shell, &name, args) {
+                        Ok(_) => shell.history.push(cmd_line),
+                        Err(e) => eprintln!("{}", e)
                     }
                 }
                 else {
                     match cmd.execute(&mut shell) {
-                        Ok(_) => shell.history.push(input.trim().to_string()),
+                        Ok(_) => shell.history.push(cmd_line),
                         Err(e) => eprintln!("{}", e)
                     }
                 }
