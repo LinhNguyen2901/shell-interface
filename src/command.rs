@@ -54,8 +54,8 @@ impl Command {
         // TODO: checking
         self.simple_commands.push(simple_command);
     }
-    pub fn execute(&self, shell: &mut crate::shell::Shell) -> bool{
-        if self.simple_commands.is_empty() { return false; }
+    pub fn execute(&self, shell: &mut crate::shell::Shell) -> Result<(), String> {
+        if self.simple_commands.is_empty() { return Err(String::new()); }
         let mut inputfd: RawFd = 0;
         let mut children: Vec<Pid> = Vec::new();
         let len = self.simple_commands.len();
@@ -67,26 +67,29 @@ impl Command {
             match path_search::find_command(name) {
                 Some(path) => paths.push(path),
                 None => {
-                    println!("{}: command not found", name);
-                    return false;
+                    if crate::builtins::is_builtin(name){
+                        paths.push(name.to_string());
+                    }
+                    else {
+                        return Err(format!("{}: command not found", name));
+                    }
                 }
             }
             if let Some(file) = &cmd.in_file {
                 let p = Path::new(file);
                 if !p.exists() {
-                    println!("{}: No such file or directory", file);
-                    return false;
+                    return Err(format!("{}: No such file or directory", file));
                 }
                 if !p.is_file() {
-                    println!("{}: Not a regular file", file);
-                    return false;
+                    return Err(format!("{}: Not a regular file", file));
                 }
             }
         }
 
         for (i, cmd) in self.simple_commands.iter().enumerate() {
             let last = i == len - 1;
-            inputfd = exec::execute_command(
+            match exec::execute_command(
+                shell,
                 &paths[i],
                 &cmd.arguments[1..],
                 inputfd,
@@ -94,7 +97,10 @@ impl Command {
                 &mut children,
                 cmd.in_file.as_deref(),
                 cmd.out_file.as_deref(),
-            );
+            ){
+                Ok(fd) => inputfd = fd,
+                Err(e) => {return Err(e);}
+            }
         }
         if self.background {
             if let Some(last_pid) = children.last() {
@@ -109,7 +115,7 @@ impl Command {
                 waitpid(*pid, None).ok();
             }
         }
-        true
+        Ok(())
     }
     
     pub fn clear(&mut self) {

@@ -4,8 +4,12 @@ use nix::libc::_exit;
 use std::os::fd::{RawFd, IntoRawFd};
 use std::fs::{OpenOptions, Permissions};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::io::Write;
+use crate::builtins;
+use crate::shell;
 
 pub fn execute_command(
+    shell: &mut shell::Shell,
     path: &str,
     args: &[String],
     inputfd: RawFd,
@@ -13,7 +17,7 @@ pub fn execute_command(
     children: &mut Vec<Pid>,
     in_file: Option<&str>,
     out_file: Option<&str>,
-) -> RawFd {
+) -> Result<RawFd, String> {
     let c_path = CString::new(path).unwrap();
 
     let mut c_args = Vec::new();
@@ -41,15 +45,46 @@ pub fn execute_command(
         }
         Ok(ForkResult::Child) => {
             redirect_io(inputfd, pipefd, last, in_file, out_file);
-            // execv only returns if it failed (ex: file is not a real program)
-            if let Err(e) = execv(&c_path, &c_args) {
-                eprintln!("{}: {}", path, e.desc());
+            if builtins::is_builtin(&path) {
+                match execute_builtin(shell, path, args) {
+                    Ok(()) => {
+                        std::io::stdout().flush().unwrap();
+                        std::io::stderr().flush().unwrap();
+                        unsafe { _exit(0) }
+                    }
+                    Err(e) => {
+                        eprintln!("{}: {}", path, e);
+                        std::io::stdout().flush().unwrap();
+                        std::io::stderr().flush().unwrap();
+                        unsafe { _exit(1) }
+                    }
+                }
             }
-            unsafe { _exit(1) }
+            // execv only returns if it failed (ex: file is not a real program)
+            else if let Err(e) = execv(&c_path, &c_args) {
+                eprintln!("{}: {}", path, e.desc());
+                std::io::stderr().flush().unwrap();
+                unsafe { _exit(127) }
+            }
         }
-        Err(_) => println!("Fork failed"),
+        Err(_) => {return Err("Fork failed".to_string())}
     }
-    outputfd
+    Ok(outputfd)
+}
+
+pub fn execute_builtin(shell: &mut shell::Shell, name: &str, args: &[String]) -> Result<(), String>{
+    if name == "exit" {
+        builtins::exit(&shell.history, &shell.job_list);
+        unsafe{ _exit(0); }
+    } else if name == "cd" {
+        match builtins::cd(args) {
+            Ok(_) => (),
+            Err(e) => {return Err(e);}
+        }
+    } else if name == "jobs" {
+        builtins::jobs(&shell.job_list);
+    }
+    Ok(())
 }
 
 fn redirect_io(
