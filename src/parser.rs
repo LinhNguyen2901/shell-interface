@@ -1,4 +1,5 @@
 use crate::command::{Command, SimpleCommand};
+use std::io;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Vocab {
@@ -11,13 +12,38 @@ enum Vocab {
     REDIR_WORD
 }
 
+pub fn get_input() -> String {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    return input;
+}
+
+// Referenced from https://stackoverflow.com/questions/32257273/split-a-string-keeping-the-separators
+pub fn get_tokens(input:&str) -> Vec<&str> {
+    let mut result = Vec::new();
+    let mut last = 0;
+    for (index, matched) in input.match_indices(|c: char| c.is_whitespace() || c == '|' || c == '<' || c == '>' || c == '&'){
+        if last != index {
+            result.push(&input[last..index]);
+        }
+        if !matched.chars().all(char::is_whitespace) {
+            result.push(matched);
+        }
+        last = index + matched.len()
+    }
+    if last < input.len() {
+        result.push(&input[last..]);
+    }
+    return result;
+}
+
 pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
     let mut last_token = Vocab::PIPE;
     let mut output = Command::new();
     output.cmd_line = tokens.join(" ");
 
     for tok in tokens {
-        println!("{:?}", last_token);
+        // println!("{:?}", last_token);
         match tok {
             "|" => match last_token {
                 Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::PIPE;}

@@ -49,7 +49,6 @@ impl Command {
         }
     }
     pub fn insert_simple_command(&mut self, simple_command: SimpleCommand) {
-        // TODO: checking
         self.simple_commands.push(simple_command);
     }
     pub fn execute(&self, shell: &mut crate::shell::Shell) -> bool{

@@ -5,6 +5,7 @@ pub struct Job {
     pub pid: Pid,
     pub cmd_line: String,
 }
+
 impl Job {
     pub fn new(num: usize, pid: Pid, cmd: String) -> Self {
         Self {
@@ -22,6 +23,7 @@ pub struct Shell {
     pub pwd: String,
     pub jobs: usize
 }
+
 impl Shell {
     pub fn new() -> Self {
         Self {
@@ -33,14 +35,17 @@ impl Shell {
             jobs: 0
         }
     }
+
     pub fn update_env(&mut self){
         self.user = env::var("USER").expect("USER environment variable must be set");
         self.machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
         self.pwd = env::var("PWD").expect("PWD environment variable must be set");
     }
+
     pub fn prompt(&self) -> String {
         format!("{}@{}:{}> ", self.user, self.machine, self.pwd)
     }
+    
     pub fn reap_background_processes(&mut self) {
         loop {
             match waitpid(Pid::from_raw(-1), Some(WaitPidFlag::WNOHANG)) {
