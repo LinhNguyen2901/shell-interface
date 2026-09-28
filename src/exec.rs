@@ -14,12 +14,11 @@ pub fn execute_command(
     args: &[String],
     inputfd: RawFd,
     last: bool,
-    children: &mut Vec<Pid>,
     in_file: Option<&str>,
     out_file: Option<&str>,
-) -> Result<RawFd, String> {
+) -> Result<(Pid, RawFd), String> {
     let c_path = CString::new(path).unwrap();
-
+    let mut child_pid: Pid = Pid::this();
     let mut c_args = Vec::new();
     c_args.push(c_path.clone());
     for arg in args {
@@ -34,7 +33,7 @@ pub fn execute_command(
     let mut outputfd: RawFd = 0;
     match unsafe{fork()} {
         Ok(ForkResult::Parent { child, .. }) => {
-            children.push(child);
+            child_pid = child;
             if inputfd != 0 {
                 close(inputfd).ok();
             }
@@ -69,7 +68,7 @@ pub fn execute_command(
         }
         Err(_) => {return Err("Fork failed".to_string())}
     }
-    Ok(outputfd)
+    Ok((child_pid, outputfd))
 }
 
 pub fn execute_builtin(shell: &mut shell::Shell, name: &str, args: &[String]) -> Result<(), String>{
