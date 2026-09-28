@@ -64,15 +64,12 @@ impl Command {
         let mut paths: Vec<String> = Vec::new();
         for cmd in &self.simple_commands {
             let name = &cmd.arguments[0];
-            match path_search::find_command(name) {
-                Some(path) => paths.push(path),
-                None => {
-                    if crate::builtins::is_builtin(name){
-                        paths.push(name.to_string());
-                    }
-                    else {
-                        return Err(format!("{}: command not found", name));
-                    }
+            if crate::builtins::is_builtin(name) {
+                paths.push(name.to_string());
+            } else {
+                match path_search::find_command(name) {
+                    Some(path) => paths.push(path),
+                    None => return Err(format!("{}: command not found", name)),
                 }
             }
             if let Some(file) = &cmd.in_file {
