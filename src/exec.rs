@@ -1,10 +1,19 @@
 use std::ffi::CString;
 use nix::unistd::{fork, ForkResult, close, execv, dup2, pipe, Pid};
+use nix::libc::_exit;
 use std::os::fd::{RawFd, IntoRawFd};
-use std::fs::OpenOptions;
-use std::os::unix::fs::OpenOptionsExt;
+use std::fs::{OpenOptions, Permissions};
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
-pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, children: &mut Vec<Pid>, in_file: Option<&str>, out_file: Option<&str>,) -> RawFd {
+pub fn execute_command(
+    path: &str,
+    args: &[String],
+    inputfd: RawFd,
+    last: bool,
+    children: &mut Vec<Pid>,
+    in_file: Option<&str>,
+    out_file: Option<&str>,
+) -> RawFd {
     let c_path = CString::new(path).unwrap();
 
     let mut c_args = Vec::new();
@@ -32,7 +41,11 @@ pub fn execute_command(path: &str, args: &[String], inputfd: RawFd, last: bool, 
         }
         Ok(ForkResult::Child) => {
             redirect_io(inputfd, pipefd, last, in_file, out_file);
-            execv(&c_path, &c_args).unwrap();
+            // execv only returns if it failed (ex: file is not a real program)
+            if let Err(e) = execv(&c_path, &c_args) {
+                eprintln!("{}: {}", path, e.desc());
+            }
+            unsafe { _exit(1) }
         }
         Err(_) => println!("Fork failed"),
     }
@@ -51,7 +64,7 @@ fn redirect_io(
             Ok(f) => f,
             Err(_) => {
                 eprintln!("{}: No such file or directory", path);
-                std::process::exit(1);
+                unsafe { _exit(1) }
             }
         };
         let fd = file.into_raw_fd();
@@ -73,9 +86,11 @@ fn redirect_io(
             Ok(f) => f,
             Err(_) => {
                 eprintln!("{}: could not open for writing", path);
-                std::process::exit(1);
+                unsafe { _exit(1) }
             }
         };
+        // mode() only applies to new files, so reset it when overwriting an old file
+        file.set_permissions(Permissions::from_mode(0o600)).ok();
         let fd = file.into_raw_fd();
         dup2(fd, 1).expect("Failed to redirect stdout to file");
         close(fd).ok();

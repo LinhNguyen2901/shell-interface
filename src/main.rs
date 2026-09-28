@@ -18,11 +18,12 @@ fn main() {
     shellception::increase_shell_level();
     let mut shell = Shell::new();
     loop {
+        // check finished jobs before the prompt so "done" isn't printed after it
+        shell.reap_background_processes();
+
         shell.update_env();
         print!("{}", shell.prompt());
         io::stdout().flush().unwrap();
-
-        shell.reap_background_processes();
 
         let input = lexer::get_input();
         // empty string means end of input (Ctrl+D or end of a file), so quit like exit
@@ -42,10 +43,6 @@ fn main() {
         let token_refs: Vec<&str> = expanded_tokens.iter().map(|s| s.as_str()).collect();
         if token_refs.is_empty() {
             continue;
-        }
-
-        for i in 0..token_refs.len() {
-            print!("token {i}: {:?}\n", &token_refs.get(i).unwrap())
         }
 
         match parser::parse_tokens(token_refs){
@@ -68,6 +65,8 @@ fn main() {
                             shell.history.push(cmd_line);
                         }
                     } else if name == "jobs" {
+                        // a job may have finished while the user was typing
+                        shell.reap_background_processes();
                         builtins::jobs(&shell.job_list);
                         shell.history.push(cmd_line);
                     }

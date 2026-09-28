@@ -27,16 +27,16 @@ impl Shell {
         Self {
             history: Vec::new(),
             job_list: Vec::new(),
-            user: env::var("USER").expect("USER environment variable must be set"),
-            machine: env::var("MACHINE").expect("MACHINE environment variable must be set"),
-            pwd: env::var("PWD").expect("PWD environment variable must be set"),
+            user: env::var("USER").unwrap_or_default(),
+            machine: env::var("MACHINE").unwrap_or_default(),
+            pwd: env::var("PWD").unwrap_or_default(),
             jobs: 0
         }
     }
     pub fn update_env(&mut self){
-        self.user = env::var("USER").expect("USER environment variable must be set");
-        self.machine = env::var("MACHINE").expect("MACHINE environment variable must be set");
-        self.pwd = env::var("PWD").expect("PWD environment variable must be set");
+        self.user = env::var("USER").unwrap_or_default();
+        self.machine = env::var("MACHINE").unwrap_or_default();
+        self.pwd = env::var("PWD").unwrap_or_default();
     }
     pub fn prompt(&self) -> String {
         format!("{}@{}:{}> ", self.user, self.machine, self.pwd)

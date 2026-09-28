@@ -17,7 +17,6 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
     output.cmd_line = tokens.join(" ");
 
     for tok in tokens {
-        println!("{:?}", last_token);
         match tok {
             "|" => match last_token {
                 Vocab::CMD | Vocab::WORD | Vocab::REDIR_WORD => {last_token = Vocab::PIPE;}
@@ -45,7 +44,10 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
                     } 
                     last_token = Vocab::WORD;
                 },
-                Vocab::PIPE => {output.insert_simple_command(SimpleCommand::new_with_command(tok)); last_token = Vocab::CMD;},
+                Vocab::PIPE => {
+                    output.insert_simple_command(SimpleCommand::new_with_command(tok));
+                    last_token = Vocab::CMD;
+                },
                 Vocab::GREAT => {if let Some(last_cmd) = output.simple_commands.last_mut() {
                         last_cmd.out_file = Some(tok.to_string());
                     } 
@@ -54,7 +56,9 @@ pub fn parse_tokens(tokens: Vec<&str>) -> Result<Command, String> {
                         last_cmd.in_file = Some(tok.to_string());
                     }
                     last_token = Vocab::REDIR_WORD;}
-                Vocab::NONE | Vocab::REDIR_WORD => return Err(format!("Unexpected syntax: {word}")),
+                Vocab::NONE | Vocab::REDIR_WORD => {
+                    return Err(format!("Unexpected syntax: {word}"));
+                }
             }
         }
     }

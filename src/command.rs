@@ -2,8 +2,10 @@ use nix::{sys::wait::waitpid,unistd::Pid};
 use std::os::fd::{RawFd};
 use crate::exec;
 use crate::path_search;
+use std::path::Path;
 
-// Adapted from https://www.cs.purdue.edu/homes/grr/SystemsProgrammingBook/Book/Chapter5-WritingYourOwnShell.pdf
+// Adapted from:
+// https://www.cs.purdue.edu/homes/grr/SystemsProgrammingBook/Book/Chapter5-WritingYourOwnShell.pdf
 #[derive(Debug)]
 pub struct SimpleCommand {
     pub arguments: Vec<String>,
@@ -58,19 +60,48 @@ impl Command {
         let mut children: Vec<Pid> = Vec::new();
         let len = self.simple_commands.len();
 
-        for (i, cmd) in self.simple_commands.iter().enumerate() {
-            let last = i == len - 1;
+        // check every command and input file first, so nothing runs if one of them is bad
+        let mut paths: Vec<String> = Vec::new();
+        for cmd in &self.simple_commands {
             let name = &cmd.arguments[0];
             match path_search::find_command(name) {
-                Some(path) => inputfd = exec::execute_command(&path, &cmd.arguments[1..], inputfd, last, &mut children, cmd.in_file.as_deref(), cmd.out_file.as_deref()),
-                None => {println!("{}: command not found", name); return false;}
+                Some(path) => paths.push(path),
+                None => {
+                    println!("{}: command not found", name);
+                    return false;
+                }
             }
+            if let Some(file) = &cmd.in_file {
+                let p = Path::new(file);
+                if !p.exists() {
+                    println!("{}: No such file or directory", file);
+                    return false;
+                }
+                if !p.is_file() {
+                    println!("{}: Not a regular file", file);
+                    return false;
+                }
+            }
+        }
+
+        for (i, cmd) in self.simple_commands.iter().enumerate() {
+            let last = i == len - 1;
+            inputfd = exec::execute_command(
+                &paths[i],
+                &cmd.arguments[1..],
+                inputfd,
+                last,
+                &mut children,
+                cmd.in_file.as_deref(),
+                cmd.out_file.as_deref(),
+            );
         }
         if self.background {
             if let Some(last_pid) = children.last() {
                 shell.jobs = shell.jobs + 1;
                 println!("[{}] {}", shell.jobs, last_pid);
-                shell.job_list.push(crate::shell::Job::new(shell.jobs, *last_pid, self.cmd_line.clone()));
+                let job = crate::shell::Job::new(shell.jobs, *last_pid, self.cmd_line.clone());
+                shell.job_list.push(job);
             }
         } 
         else {

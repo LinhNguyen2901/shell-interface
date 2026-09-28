@@ -3,4 +3,3 @@
 bin/
 .crates.toml
 .crates2.json
-run_tests.sh
