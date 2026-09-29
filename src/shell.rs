@@ -1,5 +1,10 @@
 use std::env;
 use nix::{sys::wait::{waitpid, WaitPidFlag, WaitStatus},unistd::Pid};
+
+const GREEN: &str = "\x1b[32m";
+const BLUE: &str = "\x1b[34m";
+const RESET: &str = "\x1b[0m";
+
 pub struct Job {
     pub job_num: usize,
     pub pid: Pid,
@@ -39,7 +44,7 @@ impl Shell {
         self.pwd = env::var("PWD").unwrap_or_default();
     }
     pub fn prompt(&self) -> String {
-        format!("{}@{}:{}> ", self.user, self.machine, self.pwd)
+        format!("{}{}@{}:{}{}> {}", GREEN, self.user, self.machine, BLUE, self.pwd, RESET)
     }
     pub fn reap_background_processes(&mut self) {
         loop {
@@ -61,9 +66,7 @@ impl Shell {
                     eprintln!("Error waiting for child process: {:?}", err);
                     break;
                 }
-                _ => {
-                    println!("Other state change occurred (Stopped/Continued).");
-                }
+                _ => {}
             }
         }
     }

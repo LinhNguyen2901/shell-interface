@@ -24,12 +24,13 @@ fn main() {
         shell.update_env();
         print!("{}", shell.prompt());
         io::stdout().flush().unwrap();
+        io::stderr().flush().unwrap();
 
         let input = lexer::get_input();
         // empty string means end of input (Ctrl+D or end of a file), so quit like exit
         if input.is_empty() {
             println!();
-            builtins::exit(&shell.history, &shell.job_list);
+            let _ = builtins::exit(&shell.history, &shell.job_list);
             break;
         }
 
@@ -48,33 +49,30 @@ fn main() {
         match parser::parse_tokens(token_refs){
             Ok(cmd) => {
                 // add to run builtins
-                if cmd.simple_commands.is_empty() {
-                    continue;
-                }
-        
-                let cmd_line = input.trim().to_string();
-                let name = cmd.simple_commands[0].arguments[0].clone();
-                let args = &cmd.simple_commands[0].arguments[1..];
-        
-                if builtins::is_builtin(&name) {
-                    if name == "exit" {
-                        builtins::exit(&shell.history, &shell.job_list);
-                        break;
-                    } else if name == "cd" {
-                        if builtins::cd(args) {
-                            shell.history.push(cmd_line);
-                        }
-                    } else if name == "jobs" {
-                        // a job may have finished while the user was typing
-                        shell.reap_background_processes();
-                        builtins::jobs(&shell.job_list);
-                        shell.history.push(cmd_line);
+                if cmd.simple_commands.is_empty() { continue; }
+                let first = &cmd.simple_commands[0];
+                if cmd.simple_commands.len() == 1 && builtins::is_builtin(&first.arguments[0]) {
+                    let cmd_line = input.trim().to_string();
+                    let name = first.arguments[0].clone();
+                    let args = &first.arguments[1..];
+                    let in_file = first.in_file.as_deref();
+                    let out_file = first.out_file.as_deref();
+
+                    let result =
+                        exec::run_builtin_redirected(&mut shell, &name, args, in_file, out_file);
+                    match result {
+                        Ok(_) => shell.history.push(cmd_line),
+                        Err(e) => eprintln!("{}", e),
                     }
-                } else if cmd.execute(&mut shell) {
-                    shell.history.push(cmd_line);
+                }
+                else {
+                    match cmd.execute(&mut shell) {
+                        Ok(_) => shell.history.push(input.trim().to_string()),
+                        Err(e) => eprintln!("{}", e)
+                    }
                 }
             }
-            Err(err) => println!("{}", err),
+            Err(err) => eprintln!("{}", err),
         }
     }
 }
